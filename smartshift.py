@@ -20,7 +20,7 @@ def sh(cmd):
 
 
 class Autolighter(object):
-    brightness_tracehold = 80
+    brightness_tracehold = 50
     redshift_base = "redshift -o -l 38:27 -b %s"
     get_active_windows_cmd = "xprop -id $(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2) WM_CLASS"
 
@@ -85,7 +85,7 @@ class Autolighter(object):
         eger son calismamizdan bu yana 10 dakika gectiyse ortamin aydinlik miktarini kontrol eder.
         :return: bool
         """
-        if time() - self.last_brigthness_check > 50:
+        if time() - self.last_brigthness_check > 60:
             self.last_brigthness_check = time()
             return True
 
