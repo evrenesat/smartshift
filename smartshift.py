@@ -45,11 +45,15 @@ class Autolighter(object):
         #FIXME: not working for java windows, always returns "FocusProxy"
         cur_window = display.get_input_focus().focus
         cur_class = None
-        while cur_class is None:
-            cur_class = cur_window.get_wm_class()
-            if cur_class is None:
-                cur_window = cur_window.query_tree().parent
-        return cur_class[1]
+        try:
+            while cur_class is None:
+                cur_class = cur_window.get_wm_class()
+                if cur_class is None:
+                    cur_window = cur_window.query_tree().parent
+            return cur_class[1]
+        except AttributeError, e:
+            print e, cur_class
+            return cur_class[1] if cur_class else ''
 
     def check_brightness(self, aEvent):
         # print aEvent.type
@@ -81,7 +85,7 @@ class Autolighter(object):
         eger son calismamizdan bu yana 10 dakika gectiyse ortamin aydinlik miktarini kontrol eder.
         :return: bool
         """
-        if time() - self.last_brigthness_check > 60:
+        if time() - self.last_brigthness_check > 50:
             self.last_brigthness_check = time()
             return True
 
