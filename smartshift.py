@@ -8,6 +8,7 @@ from Xlib.display import Display
 from Xlib import X, Xatom
 #apt-get install gstreamer-tools, redshift
 
+
 def sh(cmd):
     # print cmd
     k = sp.Popen(cmd, shell=True, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, close_fds=False)
@@ -19,18 +20,23 @@ def sh(cmd):
     return not error, (output or 'OK')
 
 
-class Autolighter(object):
+class SmartShift(object):
     brightness_tracehold = 50
-    redshift_base = "redshift -o -l 38:27 -b %s"
+
     get_active_windows_cmd = "xprop -id $(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2) WM_CLASS"
 
     for_darkness = 0.6
     for_lightness = 0.8
     default_brightness = 0  # dark yada light bunun ustune yazar
 
+    redshift_presets = {
+        'off': 'redshift -x',
+        'base': "redshift -o -l 38:27 -b "
+    }
+
     fixed_brightness = (
-        #(['app_name','list','for fixed', 'brightness_level'], 'a value between 0-1'), 0 min 1 max
-        (['pycharm', 'terminal', 'FocusProxy'], 1),
+        #(['app_name','list','for fixed'], 'preset_name', 'brightness_level (a value between 0-1) '),
+        (['pycharm', 'terminal', 'FocusProxy'], 'off', ''),
 
     )
     last_brigthness = 0
@@ -47,26 +53,33 @@ class Autolighter(object):
         cur_class = None
         try:
             while cur_class is None:
+                if not cur_window:
+                    return
                 cur_class = cur_window.get_wm_class()
                 if cur_class is None:
                     cur_window = cur_window.query_tree().parent
             return cur_class[1]
-        except AttributeError, e:
-            print e, cur_class
+        except Exception, e:
+            print e, cur_class, cur_window
             return cur_class[1] if cur_class else ''
+
+    def set_brightness(self, preset='base', value=''):
+        value = str(value)
+        if (preset + value) != self.last_brigthness:
+            sh(self.redshift_presets[preset] + value)
+            self.last_brigthness = preset + value
 
     def check_brightness(self, aEvent):
         # print aEvent.type
         if aEvent.type in [17, 22]:
             name = self.get_active_window_class_with_xlib()
+            if not name:
+                return
             for b in self.fixed_brightness:
                 if filter(lambda x: x in name, b[0]):
-                    if b[1] != self.last_brigthness:
-                        self.last_brigthness = b[1]
-                        sh(self.redshift_base % b[1])
-                elif self.last_brigthness != self.default_brightness:
-                    sh(self.redshift_base % self.default_brightness)
-                    self.last_brigthness = self.default_brightness
+                    self.set_brightness(b[1], b[2] if len(b) == 3 else '')
+                else:
+                    self.set_brightness('base', self.default_brightness)
             self.set_current_default()
                 # elif time() - self.last_brigthness_check > 600:
                 #     # 1 saattir pencere degismemisse zorla calistiriyoruz.
@@ -75,17 +88,17 @@ class Autolighter(object):
     def brightness(self):
         sh("gst-launch -v v4l2src ! decodebin ! ffmpegcolorspace ! pngenc ! filesink location=/tmp/brightest.png")
         #http://stackoverflow.com/questions/3490727/what-are-some-methods-to-analyze-image-brightness-using-python
-        im = Image.open('/tmp/brightest.png')
+        im = Image.open('/tmp/brightest.png').convert('L')
         stat = ImageStat.Stat(im)
-        r, g, b = stat.mean
-        return math.sqrt(0.241 * (r ** 2) + 0.691 * (g ** 2) + 0.068 * (b ** 2))
+        print im.getextrema(), stat.rms
+        return stat.rms[0]
 
     def recheck_needed(self):
         """
         eger son calismamizdan bu yana 10 dakika gectiyse ortamin aydinlik miktarini kontrol eder.
         :return: bool
         """
-        if time() - self.last_brigthness_check > 60:
+        if time() - self.last_brigthness_check > 300:
             self.last_brigthness_check = time()
             return True
 
@@ -107,13 +120,13 @@ class Autolighter(object):
 
 
 if __name__ == "__main__":
-    al = Autolighter()
+    ss = SmartShift()
     display = Display()
     root = display.screen().root
     root.change_attributes(event_mask=X.SubstructureNotifyMask)
     while True:
         ev = display.next_event()
-        al.check_brightness(ev)
+        ss.check_brightness(ev)
 
 
 
