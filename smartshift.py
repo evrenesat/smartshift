@@ -2,7 +2,7 @@
 import Image
 import ImageStat
 import subprocess as sp
-from time import sleep, time
+from time import sleep, time, strftime
 import math
 from Xlib.display import Display
 from Xlib import X, Xatom
@@ -21,17 +21,34 @@ def sh(cmd):
 
 
 class SmartShift(object):
-    brightness_tracehold = 50
+    brightness_tracehold = 65
 
     get_active_windows_cmd = "xprop -id $(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2) WM_CLASS"
 
+    brightness_for = [
+        {
+            'hours': [22, 0, 1, 2, 3, 4, 5, 6, 7],
+            'light_levels': [
+                [range(1, 70), 0.5],
+                [range(70, 120), 0.8],
+            ]
+        },
+        {
+            'hours': [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+            'light_levels': [
+                [range(1, 70), 0.57],
+                [range(70, 120), 0.9],
+            ]
+        }
+    ]
     for_darkness = 0.6
-    for_lightness = 0.8
+    for_lightness = 0.9
     default_brightness = 0  # dark yada light bunun ustune yazar
 
     redshift_presets = {
         'off': 'redshift -x',
-        'base': "redshift -o -l 38:27 -b "
+        #'base': "redshift -o -l 38:27 -b "
+        'base': "redshift -O 5500 -b"
     }
 
     fixed_brightness = (
@@ -39,9 +56,16 @@ class SmartShift(object):
         (['pycharm', 'terminal', 'FocusProxy'], 'off', ''),
 
     )
+    current_environment = 0
     last_brigthness = 0
     ten_mins_marker = 0
     last_brigthness_check = 0
+
+
+    def get_brightness_for_hour(self):
+        h = int(strftime('%H'))
+        for ho in self.brightness_for:
+
 
     def get_active_window_class_with_xprop(self):
         name = sh(self.get_active_windows_cmd)[1]
@@ -58,6 +82,7 @@ class SmartShift(object):
                 cur_class = cur_window.get_wm_class()
                 if cur_class is None:
                     cur_window = cur_window.query_tree().parent
+            print cur_class[1]
             return cur_class[1]
         except Exception, e:
             print e, cur_class, cur_window
@@ -70,8 +95,8 @@ class SmartShift(object):
             self.last_brigthness = preset + value
 
     def check_brightness(self, aEvent):
-        # print aEvent.type
-        if aEvent.type in [17, 22]:
+        #print aEvent.type
+        if aEvent.type in [18, 17, 22]:
             name = self.get_active_window_class_with_xlib()
             if not name:
                 return
@@ -81,9 +106,9 @@ class SmartShift(object):
                 else:
                     self.set_brightness('base', self.default_brightness)
             self.set_current_default()
-                # elif time() - self.last_brigthness_check > 600:
-                #     # 1 saattir pencere degismemisse zorla calistiriyoruz.
-                #     self.last_brigthness = 0
+            # elif time() - self.last_brigthness_check > 600:
+            #     # 1 saattir pencere degismemisse zorla calistiriyoruz.
+            #     self.last_brigthness = 0
 
     def brightness(self):
         sh("gst-launch -v v4l2src ! decodebin ! ffmpegcolorspace ! pngenc ! filesink location=/tmp/brightest.png")
@@ -109,9 +134,9 @@ class SmartShift(object):
         :return: None
         """
         if self.recheck_needed():
-            current_environment = self.brightness()
-            print "environment", current_environment
-            if current_environment > self.brightness_tracehold:
+            self.current_environment = self.brightness()
+            print "environment", self.current_environment
+            if self.current_environment > self.brightness_tracehold:
                 self.default_brightness = self.for_lightness
                 print "set default for lightness"
             else:
@@ -124,9 +149,11 @@ if __name__ == "__main__":
     display = Display()
     root = display.screen().root
     root.change_attributes(event_mask=X.SubstructureNotifyMask)
-    while True:
-        ev = display.next_event()
-        ss.check_brightness(ev)
-
+    try:
+        while True:
+            ev = display.next_event()
+            ss.check_brightness(ev)
+    except KeyboardInterrupt:
+        sh('redshift -x')
 
 
