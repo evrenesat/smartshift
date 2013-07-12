@@ -1,0 +1,29 @@
+__author__ = 'Evren Esat Ozkan'
+
+LIGHT_LEVELS_FOR_HOURS = [
+    {
+        'hours': [22, 0, 1, 2, 3, 4, 5, 6, 7],
+        'light_levels': [
+            [range(1, 70), 0.5],
+            [range(70, 120), 0.8],
+        ]
+    },
+    {
+        'hours': [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        'light_levels': [
+            [range(1, 70), 0.7],
+            [range(70, 120), 0.9],
+        ]
+    }
+]
+
+REDSHIFT_PRESETS = {
+    'off': 'redshift -x',
+    #'base': "redshift -o -l 38:27 -b "
+    'base': "redshift -O 5500 -b"
+}
+FIXED_BRIGHTNESS_APPS = (
+    #(['app_name','list','for fixed'], 'preset_name', 'brightness_level (a value between 0-1) '),
+    (['pycharm', 'terminal', 'Terminator', 'FocusProxy'], 'off', ''),
+
+)
