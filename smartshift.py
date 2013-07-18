@@ -23,7 +23,7 @@ def sh(cmd):
 
 
 class SmartShift(object):
-    get_active_windows_cmd = "xprop -id $(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2) WM_CLASS"
+    get_active_windows_cmd = "xprop -id $(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2) WM_NAME"
     current_brightness = 0
     current_environment = 0
     last_brigthness = 0
@@ -58,9 +58,10 @@ class SmartShift(object):
                 if cur_class is None:
                     cur_window = cur_window.query_tree().parent
             print cur_class[1]
+            cur_window.get_wm_name()
             return cur_class[1]
         except Exception, e:
-            print e, cur_class, cur_window
+            print e, cur_class, cur_window, cur_window.get_wm_name()
             return cur_class[1] if cur_class else ''
 
     def set_brightness(self, preset='base', value=''):
@@ -72,7 +73,8 @@ class SmartShift(object):
     def check_brightness(self, aEvent):
         #print aEvent.type
         if aEvent.type in [18, 17, 22]:
-            name = self.get_active_window_class_with_xlib()
+            name = self.get_active_window_class_with_xprop()
+            print name
             if not name:
                 return
             for b in FIXED_BRIGHTNESS_APPS:
