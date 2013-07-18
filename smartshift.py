@@ -23,7 +23,7 @@ def sh(cmd):
 
 
 class SmartShift(object):
-    get_active_windows_cmd = "xprop -id $(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2) WM_NAME"
+    get_active_windows_cmd = "xprop -id $(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2) WM_NAME WM_CLASS"
     current_brightness = 0
     current_environment = 0
     last_brigthness = 0
@@ -41,10 +41,13 @@ class SmartShift(object):
 
         print "NOT FOUND: light level for %s > %s" % (h, self.current_environment)
 
-
     def get_active_window_class_with_xprop(self):
-        name = sh(self.get_active_windows_cmd)[1]
-        return (name.split('=')[1]).replace('"', '')
+        return sh(self.get_active_windows_cmd)[1]
+        # try:
+        #     name = sh(self.get_active_windows_cmd)[1]
+        #     return (name.split('=')[1]).replace('"', '')
+        # except IndexError:
+        #     return name.replace('"', '')
 
     def get_active_window_class_with_xlib(self):
         #FIXME: not working for java windows, always returns "FocusProxy"
